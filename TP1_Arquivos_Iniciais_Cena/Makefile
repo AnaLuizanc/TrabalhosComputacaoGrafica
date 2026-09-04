@@ -1,7 +1,7 @@
 CXX = g++
 CXXFLAGS = -Wall -Wextra -std=c++17 -I./include
 LIBS = -lGL -lGLU -lglut
-TARGET = tp1
+TARGET = tp1.exe
 SRCS = $(wildcard *.cpp) $(wildcard src/*.cpp)
 OBJS = $(SRCS:.cpp=.o)
 
