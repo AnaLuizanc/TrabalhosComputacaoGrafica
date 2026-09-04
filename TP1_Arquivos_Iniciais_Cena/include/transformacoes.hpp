@@ -60,6 +60,15 @@ public:
         float y_v = ((w_ymax - pontoMundo.y) / (w_ymax - w_ymin)) * (v_ymax - v_ymin) + v_ymin;
         return vec2(x_v, y_v);
     }
+
+    static inline vec2 viewportParaMundo(vec2 pontoViewport,
+                                        float w_xmin, float w_xmax, float w_ymin, float w_ymax,
+                                        float v_xmin, float v_xmax, float v_ymin, float v_ymax) {
+        float x_w = ((pontoViewport.x - v_xmin) / (v_xmax - v_xmin)) * (w_xmax - w_xmin) + w_xmin;        
+        float y_w = w_ymax - ((pontoViewport.y - v_ymin) / (v_ymax - v_ymin)) * (w_ymax - w_ymin);
+        
+        return vec2(x_w, y_w);
+    }
 };
 
 #endif

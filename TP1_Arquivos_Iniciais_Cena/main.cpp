@@ -15,32 +15,31 @@ vector<ObjetoBase> cena;
 float mundoXMin = -100.0f, mundoXMax = 100.0f;
 float mundoYMin = -100.0f, mundoYMax = 100.0f;
 
-// Limites da Viewport gráfica (reservando 200 pixels no X para o painel)
+// Limites da Viewport gráfica
 float vpXMin = 0.0f, vpXMax = 600.0f; 
 float vpYMin = 0.0f, vpYMax = 600.0f;
 
 int objetoSelecionado = 0; 
-bool modoDemonstracao = false; // Controle da tela de demonstração
+bool modoDemonstracao = false; 
+bool arrastando = false;
+glm::vec2 ultimoMouseMundo(0.0f, 0.0f);
 
 float passoTranslacao = 5.0f;
 float passoEscala = 1.1f;
 float passoRotacao = 0.1f; 
 
-// ==========================================
-// Funções Auxiliares de Interface
-// ==========================================
+
 void desenhaTexto(const char* texto, float x, float y) {
-    glColor3f(1.0f, 1.0f, 1.0f); // Branco
+    glColor3f(1.0f, 1.0f, 1.0f);
     glRasterPos2f(x, y);
     while (*texto) {
-        // Renderiza o texto usando a função exigida no edital[cite: 2]
+
         glutBitmapCharacter(GLUT_BITMAP_8_BY_13, *texto);
         texto++;
     }
 }
 
 void desenhaPainel() {
-    // Desenha linha divisória da viewport e painel usando primitivas[cite: 2]
     glColor3f(0.5f, 0.5f, 0.5f);
     glBegin(GL_LINES);
         glVertex2f(600.0f, 0.0f);
@@ -228,9 +227,59 @@ void teclasEspeciais(int key, int x, int y) {
     glutPostRedisplay();
 }
 
+bool pontoNoObjeto(glm::vec2 pMundo, const ObjetoBase& obj) {
+    float minX = 9999, maxX = -9999, minY = 9999, maxY = -9999;
+    
+    for (const auto& pol : obj.poligonos) {
+        for (const auto& v : pol.vertices) {
+            glm::vec3 pTransformado = obj.matrizAcumulada * glm::vec3(v.x, v.y, 1.0f);
+            if (pTransformado.x < minX) minX = pTransformado.x;
+            if (pTransformado.x > maxX) maxX = pTransformado.x;
+            if (pTransformado.y < minY) minY = pTransformado.y;
+            if (pTransformado.y > maxY) maxY = pTransformado.y;
+        }
+    }
+    return (pMundo.x >= minX && pMundo.x <= maxX && pMundo.y >= minY && pMundo.y <= maxY);
+}
+
+void mouseClick(int button, int state, int x, int y) {
+    if (modoDemonstracao || cena.empty() || x > vpXMax) return;
+    glm::vec2 mouseMundo = Transformacoes::viewportParaMundo(
+        glm::vec2(x, y), mundoXMin, mundoXMax, mundoYMin, mundoYMax, vpXMin, vpXMax, vpYMin, vpYMax
+    );
+    if (button == GLUT_LEFT_BUTTON) {
+        if (state == GLUT_DOWN) {
+            for (size_t i = 0; i < cena.size(); ++i) {
+                if (pontoNoObjeto(mouseMundo, cena[i])) {
+                    objetoSelecionado = i;
+                    arrastando = true;
+                    ultimoMouseMundo = mouseMundo;
+                    glutPostRedisplay();
+                    break;
+                }
+            }
+        } else if (state == GLUT_UP) {
+            arrastando = false;
+        }
+    }
+}
+
+void mouseMotion(int x, int y) {
+    if (!arrastando || cena.empty()) return;
+    glm::vec2 mouseMundo = Transformacoes::viewportParaMundo(
+        glm::vec2(x, y), mundoXMin, mundoXMax, mundoYMin, mundoYMax, vpXMin, vpXMax, vpYMin, vpYMax
+    );
+
+    float dx = mouseMundo.x - ultimoMouseMundo.x;
+    float dy = mouseMundo.y - ultimoMouseMundo.y;
+    cena[objetoSelecionado].matrizAcumulada = Transformacoes::translacao(dx, dy) * cena[objetoSelecionado].matrizAcumulada;
+
+    ultimoMouseMundo = mouseMundo;
+    glutPostRedisplay();
+}
+
 void inicializa() {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluOrtho2D(0.0, 800.0, 600.0, 0.0);
@@ -246,7 +295,8 @@ int main(int argc, char** argv) {
     glutCreateWindow("TP1 - Transformacoes 2D");
     glutKeyboardFunc(teclado);
     glutSpecialFunc(teclasEspeciais);
-    
+    glutMouseFunc(mouseClick);
+    glutMotionFunc(mouseMotion);
     inicializa();
     glutDisplayFunc(desenha);
     
