@@ -78,6 +78,10 @@ void teclado(unsigned char key, int x, int y) {
         case '-': 
             obj.matrizAcumulada = Transformacoes::escala(1.0f / passoEscala, 1.0f / passoEscala) * obj.matrizAcumulada;
             break;
+        case 'y': 
+        case 'Y':
+            obj.matrizAcumulada = Transformacoes::reflexao(false, true) * obj.matrizAcumulada;
+            break;
         case 'x': 
         case 'X':
             obj.matrizAcumulada = Transformacoes::reflexao(true, false) * obj.matrizAcumulada;
