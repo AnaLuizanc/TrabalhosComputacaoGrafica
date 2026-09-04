@@ -1,9 +1,9 @@
 #include <GL/glut.h>
 #include <glm/glm.hpp>
 #include <vector>
+#include <string>
 
 #include "transformacoes.hpp"
-
 #include "scene_types.hpp"
 #include "cena_inicial.hpp"
 
@@ -11,51 +11,156 @@ using namespace std;
 
 vector<ObjetoBase> cena;
 
+// Limites do mundo
 float mundoXMin = -100.0f, mundoXMax = 100.0f;
 float mundoYMin = -100.0f, mundoYMax = 100.0f;
 
-float vpXMin = 0.0f, vpXMax = 800.0f;
+// Limites da Viewport gráfica (reservando 200 pixels no X para o painel)
+float vpXMin = 0.0f, vpXMax = 600.0f; 
 float vpYMin = 0.0f, vpYMax = 600.0f;
 
-void desenha() {
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    for (const auto& objeto : cena) {
-        for (const auto& poligono : objeto.poligonos) {
-            
-            glColor3f(poligono.cor.r, poligono.cor.g, poligono.cor.b);
-            
-            glBegin(GL_POLYGON);
-            for (const auto& vertice : poligono.vertices) {
-                
-                glm::vec3 pontoHomogeneo(vertice.x, vertice.y, 1.0f);
-                
-                glm::vec3 pontoTransformado = objeto.matrizAcumulada * pontoHomogeneo;
-                
-                glm::vec2 pontoViewport = Transformacoes::mundoParaViewport(
-                    glm::vec2(pontoTransformado.x, pontoTransformado.y),
-                    -100.0f, 100.0f, -100.0f, 100.0f, 
-                    0.0f, 800.0f, 0.0f, 600.0f 
-                );
-                
-                glVertex2f(pontoViewport.x, pontoViewport.y);
-            }
-            glEnd();
-        }
-    }
-
-    glFlush();
-}
-
 int objetoSelecionado = 0; 
+bool modoDemonstracao = false; // Controle da tela de demonstração
 
 float passoTranslacao = 5.0f;
 float passoEscala = 1.1f;
 float passoRotacao = 0.1f; 
 
+// ==========================================
+// Funções Auxiliares de Interface
+// ==========================================
+void desenhaTexto(const char* texto, float x, float y) {
+    glColor3f(1.0f, 1.0f, 1.0f); // Branco
+    glRasterPos2f(x, y);
+    while (*texto) {
+        // Renderiza o texto usando a função exigida no edital[cite: 2]
+        glutBitmapCharacter(GLUT_BITMAP_8_BY_13, *texto);
+        texto++;
+    }
+}
+
+void desenhaPainel() {
+    // Desenha linha divisória da viewport e painel usando primitivas[cite: 2]
+    glColor3f(0.5f, 0.5f, 0.5f);
+    glBegin(GL_LINES);
+        glVertex2f(600.0f, 0.0f);
+        glVertex2f(600.0f, 600.0f);
+    glEnd();
+
+    desenhaTexto("PAINEL DE CONTROLE", 620.0f, 30.0f);
+    desenhaTexto("------------------", 620.0f, 40.0f);
+    
+    desenhaTexto("OBJETO ATIVO:", 610.0f, 70.0f);
+    if (objetoSelecionado == 0) desenhaTexto("[1] Casa", 610.0f, 90.0f);
+    else if (objetoSelecionado == 1) desenhaTexto("[2] Barco", 610.0f, 90.0f);
+    else if (objetoSelecionado == 2) desenhaTexto("[3] Moinho", 610.0f, 90.0f);
+    
+    desenhaTexto("COMANDOS:", 610.0f, 140.0f);
+    desenhaTexto("1, 2, 3: Selecionar", 610.0f, 160.0f);
+    desenhaTexto("Setas  : Transladar", 610.0f, 180.0f);
+    desenhaTexto("R / r  : Rotacionar", 610.0f, 200.0f);
+    desenhaTexto("+ / -  : Escala", 610.0f, 220.0f);
+    desenhaTexto("X / Y  : Espelhar", 610.0f, 240.0f);
+    desenhaTexto("H / h  : Cisalhar", 610.0f, 260.0f);
+    desenhaTexto("0      : Reiniciar", 610.0f, 280.0f);
+    
+    desenhaTexto("------------------", 620.0f, 320.0f);
+    desenhaTexto("D : Mostrar Ordem", 610.0f, 340.0f);
+    desenhaTexto("    (T*S vs S*T)", 610.0f, 355.0f);
+}
+
+void desenhaDemonstracao() {
+    if (cena.empty()) return;
+    ObjetoBase obj = cena[0];
+    
+    desenhaTexto("DEMONSTRACAO: A ordem importa (Aperte 'D' para voltar)", 50.0f, 30.0f);
+    desenhaTexto("Esquerda: Escala -> Translacao (T * S)", 20.0f, 70.0f);
+    desenhaTexto("Direita : Translacao -> Escala (S * T)", 320.0f, 70.0f);
+
+    glm::mat3 T = Transformacoes::translacao(30.0f, 30.0f);
+    glm::mat3 S = Transformacoes::escala(2.0f, 2.0f);
+
+    glm::mat3 matrizTS = T * S;
+    glm::mat3 matrizST = S * T;
+
+    auto desenhaObj = [&](glm::mat3 matriz, float offsetX) {
+        for (const auto& poligono : obj.poligonos) {
+            glColor3f(poligono.cor.r, poligono.cor.g, poligono.cor.b);
+            glBegin(GL_POLYGON);
+            for (const auto& vertice : poligono.vertices) {
+                glm::vec3 ponto(vertice.x + offsetX, vertice.y, 1.0f);
+                glm::vec3 pTransf = matriz * ponto;
+                
+                glm::vec2 pVP = Transformacoes::mundoParaViewport(
+                    glm::vec2(pTransf.x, pTransf.y),
+                    mundoXMin, mundoXMax, mundoYMin, mundoYMax, 
+                    vpXMin, vpXMax, vpYMin, vpYMax 
+                );
+                glVertex2f(pVP.x, pVP.y);
+            }
+            glEnd();
+        }
+    };
+
+    desenhaObj(matrizTS, -50.0f); 
+    desenhaObj(matrizST,  10.0f); 
+}
+
+
+void desenha() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    if (modoDemonstracao) {
+        desenhaDemonstracao();
+    } else {
+        glColor3f(0.2f, 0.2f, 0.2f);
+        glBegin(GL_LINES);
+            glm::vec2 vpy1 = Transformacoes::mundoParaViewport(glm::vec2(0, mundoYMin), 
+                mundoXMin, mundoXMax, mundoYMin, mundoYMax, vpXMin, vpXMax, vpYMin, vpYMax);
+            glm::vec2 vpy2 = Transformacoes::mundoParaViewport(glm::vec2(0, mundoYMax),
+                mundoXMin, mundoXMax, mundoYMin, mundoYMax, vpXMin, vpXMax, vpYMin, vpYMax);
+            glm::vec2 vpx1 = Transformacoes::mundoParaViewport(glm::vec2(mundoXMin, 0),
+                mundoXMin, mundoXMax, mundoYMin, mundoYMax, vpXMin, vpXMax, vpYMin, vpYMax);
+            glm::vec2 vpx2 = Transformacoes::mundoParaViewport(glm::vec2(mundoXMax, 0),
+                mundoXMin, mundoXMax, mundoYMin, mundoYMax, vpXMin, vpXMax, vpYMin, vpYMax);
+            glVertex2f(vpy1.x, vpy1.y); glVertex2f(vpy2.x, vpy2.y);
+            glVertex2f(vpx1.x, vpx1.y); glVertex2f(vpx2.x, vpx2.y);
+        glEnd();
+
+        for (const auto& objeto : cena) {
+            for (const auto& poligono : objeto.poligonos) {
+                glColor3f(poligono.cor.r, poligono.cor.g, poligono.cor.b);
+                glBegin(GL_POLYGON);
+                for (const auto& vertice : poligono.vertices) {
+                    glm::vec3 pontoHomogeneo(vertice.x, vertice.y, 1.0f);
+                    glm::vec3 pontoTransformado = objeto.matrizAcumulada * pontoHomogeneo;
+                    
+                    glm::vec2 pontoViewport = Transformacoes::mundoParaViewport(
+                        glm::vec2(pontoTransformado.x, pontoTransformado.y),
+                        mundoXMin, mundoXMax, mundoYMin, mundoYMax, 
+                        vpXMin, vpXMax, vpYMin, vpYMax
+                    );
+                    
+                    glVertex2f(pontoViewport.x, pontoViewport.y);
+                }
+                glEnd();
+            }
+        }
+    }
+
+    desenhaPainel();
+    glFlush();
+}
+
 void teclado(unsigned char key, int x, int y) {
     if (cena.empty()) return;
     
+    if (key == 'd' || key == 'D') {
+        modoDemonstracao = !modoDemonstracao;
+        glutPostRedisplay();
+        return;
+    }
+
     ObjetoBase& obj = cena[objetoSelecionado];
 
     switch (key) {
@@ -64,12 +169,12 @@ void teclado(unsigned char key, int x, int y) {
         case '3': objetoSelecionado = 2; break;
         case 'r': {
             glm::vec2 centro = obj.calcularCentro();
-            obj.matrizAcumulada = Transformacoes::rotacaoNoCentro(centro.x, centro.y, 0.1f) * obj.matrizAcumulada;
+            obj.matrizAcumulada = Transformacoes::rotacaoNoCentro(centro.x, centro.y, passoRotacao) * obj.matrizAcumulada;
             break;
         }
         case 'R': {
             glm::vec2 centro = obj.calcularCentro();
-            obj.matrizAcumulada = Transformacoes::rotacaoNoCentro(centro.x, centro.y, -0.1f) * obj.matrizAcumulada;
+            obj.matrizAcumulada = Transformacoes::rotacaoNoCentro(centro.x, centro.y, -passoRotacao) * obj.matrizAcumulada;
             break;
         }
         case '+': 
@@ -78,13 +183,13 @@ void teclado(unsigned char key, int x, int y) {
         case '-': 
             obj.matrizAcumulada = Transformacoes::escala(1.0f / passoEscala, 1.0f / passoEscala) * obj.matrizAcumulada;
             break;
-        case 'y': 
-        case 'Y':
-            obj.matrizAcumulada = Transformacoes::reflexao(false, true) * obj.matrizAcumulada;
-            break;
         case 'x': 
         case 'X':
             obj.matrizAcumulada = Transformacoes::reflexao(true, false) * obj.matrizAcumulada;
+            break;
+        case 'y': 
+        case 'Y':
+            obj.matrizAcumulada = Transformacoes::reflexao(false, true) * obj.matrizAcumulada;
             break;
         case 'h':
             obj.matrizAcumulada = Transformacoes::cisalhamento(0.2f, 0.0f) * obj.matrizAcumulada;
