@@ -11,11 +11,9 @@ using namespace std;
 
 vector<ObjetoBase> cena;
 
-// Limites do mundo
 float mundoXMin = -100.0f, mundoXMax = 100.0f;
 float mundoYMin = -100.0f, mundoYMax = 100.0f;
 
-// Limites da Viewport gráfica
 float vpXMin = 0.0f, vpXMax = 600.0f; 
 float vpYMin = 0.0f, vpYMax = 600.0f;
 

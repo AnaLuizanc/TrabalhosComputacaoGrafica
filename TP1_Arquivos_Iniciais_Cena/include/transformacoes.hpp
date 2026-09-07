@@ -4,6 +4,8 @@
 #include <glm/glm.hpp>
 #include <cmath>
 
+using namespace std;
+
 class Transformacoes {
 public:
     using mat3 = glm::mat3;
@@ -25,10 +27,10 @@ public:
 
     static inline mat3 rotacao(float angulo_radianos) {
         mat3 R(1.0f);
-        R[0][0] = std::cos(angulo_radianos);
-        R[0][1] = std::sin(angulo_radianos);
-        R[1][0] = -std::sin(angulo_radianos);
-        R[1][1] = std::cos(angulo_radianos);
+        R[0][0] = cos(angulo_radianos);
+        R[0][1] = sin(angulo_radianos);
+        R[1][0] = -sin(angulo_radianos);
+        R[1][1] = cos(angulo_radianos);
         return R;
     }
 
