@@ -14,8 +14,8 @@ vector<ObjetoBase> cena;
 float mundoXMin = -100.0f, mundoXMax = 100.0f;
 float mundoYMin = -100.0f, mundoYMax = 100.0f;
 
-float vpXMin = 0.0f, vpXMax = 600.0f; 
-float vpYMin = 0.0f, vpYMax = 600.0f;
+float vpXMin = 20.0f, vpXMax = 580.0f;
+float vpYMin = 20.0f, vpYMax = 580.0f;
 
 int objetoSelecionado = 0; 
 bool modoDemonstracao = false; 
@@ -26,6 +26,16 @@ float passoTranslacao = 5.0f;
 float passoEscala = 1.1f;
 float passoRotacao = 0.1f; 
 
+void desenhaBordaViewport() {
+    glColor3f(1.0f, 1.0f, 1.0f); 
+    
+    glBegin(GL_LINE_LOOP);
+        glVertex2f(vpXMin, vpYMin); // Canto superior esquerdo
+        glVertex2f(vpXMax, vpYMin); // Canto superior direito
+        glVertex2f(vpXMax, vpYMax); // Canto inferior direito
+        glVertex2f(vpXMin, vpYMax); // Canto inferior esquerdo
+    glEnd();
+}
 
 void desenhaTexto(const char* texto, float x, float y) {
     glColor3f(1.0f, 1.0f, 1.0f);
@@ -35,6 +45,26 @@ void desenhaTexto(const char* texto, float x, float y) {
         glutBitmapCharacter(GLUT_BITMAP_8_BY_13, *texto);
         texto++;
     }
+}
+
+void desenhaCaixasPainel() {
+    glColor3f(0.5f, 0.5f, 0.5f);
+    
+    // Caixa 1: Seção "OBJETO ATIVO"
+    glBegin(GL_LINE_LOOP);
+        glVertex2f(605.0f, 55.0f);   // Canto superior esquerdo
+        glVertex2f(790.0f, 55.0f);   // Canto superior direito
+        glVertex2f(790.0f, 110.0f);  // Canto inferior direito
+        glVertex2f(605.0f, 110.0f);  // Canto inferior esquerdo
+    glEnd();
+
+    // Caixa 2: Seção "COMANDOS"
+    glBegin(GL_LINE_LOOP);
+        glVertex2f(605.0f, 120.0f);
+        glVertex2f(790.0f, 120.0f);
+        glVertex2f(790.0f, 350.0f);
+        glVertex2f(605.0f, 350.0f);
+    glEnd();
 }
 
 void desenhaPainel() {
@@ -60,10 +90,8 @@ void desenhaPainel() {
     desenhaTexto("X / Y  : Espelhar", 610.0f, 240.0f);
     desenhaTexto("H / h  : Cisalhar", 610.0f, 260.0f);
     desenhaTexto("0      : Reiniciar", 610.0f, 280.0f);
-    
-    desenhaTexto("------------------", 620.0f, 320.0f);
-    desenhaTexto("D : Mostrar Ordem", 610.0f, 340.0f);
-    desenhaTexto("    (T*S vs S*T)", 610.0f, 355.0f);
+    desenhaTexto("D      : Mostrar Ordem", 610.0f, 300.0f);
+    desenhaTexto("        (T*S vs S*T)", 610.0f, 320.0f);
 }
 
 void desenhaDemonstracao() {
@@ -107,6 +135,8 @@ void desenhaDemonstracao() {
 void desenha() {
     glClear(GL_COLOR_BUFFER_BIT);
 
+    desenhaBordaViewport();
+
     if (modoDemonstracao) {
         desenhaDemonstracao();
     } else {
@@ -143,8 +173,10 @@ void desenha() {
                 glEnd();
             }
         }
+        glFlush();
     }
 
+    desenhaCaixasPainel();
     desenhaPainel();
     glFlush();
 }
