@@ -212,13 +212,15 @@ void teclado(unsigned char key, int x, int y) {
         case '2': objetoSelecionado = 1; break; 
         case '3': objetoSelecionado = 2; break;
         case 'r': {
-            glm::vec2 centro = obj.calcularCentro();
-            obj.matrizAcumulada = Transformacoes::rotacaoNoCentro(centro.x, centro.y, passoRotacao) * obj.matrizAcumulada;
+            glm::vec2 centroOriginal = obj.calcularCentro();
+            glm::vec3 centroAtual = obj.matrizAcumulada * glm::vec3(centroOriginal.x, centroOriginal.y, 1.0f);
+            obj.matrizAcumulada = Transformacoes::rotacaoNoCentro(centroAtual.x, centroAtual.y, 0.1f) * obj.matrizAcumulada;
             break;
         }
         case 'R': {
-            glm::vec2 centro = obj.calcularCentro();
-            obj.matrizAcumulada = Transformacoes::rotacaoNoCentro(centro.x, centro.y, -passoRotacao) * obj.matrizAcumulada;
+            glm::vec2 centroOriginal = obj.calcularCentro();
+            glm::vec3 centroAtual = obj.matrizAcumulada * glm::vec3(centroOriginal.x, centroOriginal.y, 1.0f);
+            obj.matrizAcumulada = Transformacoes::rotacaoNoCentro(centroAtual.x, centroAtual.y, -0.1f) * obj.matrizAcumulada;
             break;
         }
         case 'o': { 
