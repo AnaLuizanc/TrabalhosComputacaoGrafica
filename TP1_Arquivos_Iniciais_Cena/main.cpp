@@ -107,8 +107,8 @@ void desenhaDemonstracao() {
         glVertex2f(meioX, vpYMax);
     glEnd();
 
-    glm::mat3 S = Transformacoes::escala(1.1f, 0.5f);       
-    glm::mat3 T = Transformacoes::translacao(70.0f, 10.0f);  
+    glm::mat3 S = Transformacoes::escala(0.5f, 0.5f);       
+    glm::mat3 T = Transformacoes::translacao(80.0f, 20.0f);  
 
     glm::mat3 matrizTS = T * S; // Lado Esquerdo
     glm::mat3 matrizST = S * T; // Lado Direito
