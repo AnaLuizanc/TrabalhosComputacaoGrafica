@@ -83,6 +83,7 @@ make clean
 - `1`, `2`, `3`: seleciona o objeto ativo na cena
 - Setas direcionais: translada o objeto selecionado
 - `R` / `r`: rotaciona o objeto em torno do seu centro geométrico
+- `O` / `o`: rotaciona o objeto em torno da origem
 - `+` / `-`: aumenta ou diminui a escala uniforme
 - `X` / `Y`: aplica reflexão nos eixos X e Y
 - `H` / `h`: aplica cisalhamento
