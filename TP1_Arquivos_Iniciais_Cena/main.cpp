@@ -62,8 +62,8 @@ void desenhaCaixasPainel() {
     glBegin(GL_LINE_LOOP);
         glVertex2f(605.0f, 120.0f);
         glVertex2f(790.0f, 120.0f);
-        glVertex2f(790.0f, 350.0f);
-        glVertex2f(605.0f, 350.0f);
+        glVertex2f(790.0f, 380.0f);
+        glVertex2f(605.0f, 380.0f);
     glEnd();
 }
 
@@ -86,51 +86,66 @@ void desenhaPainel() {
     desenhaTexto("1, 2, 3: Selecionar", 610.0f, 160.0f);
     desenhaTexto("Setas  : Transladar", 610.0f, 180.0f);
     desenhaTexto("R / r  : Rotacionar", 610.0f, 200.0f);
-    desenhaTexto("+ / -  : Escala", 610.0f, 220.0f);
-    desenhaTexto("X / Y  : Espelhar", 610.0f, 240.0f);
-    desenhaTexto("H / h  : Cisalhar", 610.0f, 260.0f);
-    desenhaTexto("0      : Reiniciar", 610.0f, 280.0f);
-    desenhaTexto("D      : Mostrar Ordem", 610.0f, 300.0f);
-    desenhaTexto("        (T*S vs S*T)", 610.0f, 320.0f);
+    desenhaTexto("O / o  : Rotacionar", 610.0f, 220.0f);
+    desenhaTexto("         na origem", 610.0f, 240.0f);
+    desenhaTexto("+ / -  : Escala", 610.0f, 260.0f);
+    desenhaTexto("X / Y  : Espelhar", 610.0f, 280.0f);
+    desenhaTexto("H / h  : Cisalhar", 610.0f, 300.0f);
+    desenhaTexto("0      : Reiniciar", 610.0f, 320.0f);
+    desenhaTexto("D      : Mostrar Ordem", 610.0f, 340.0f);
+    desenhaTexto("        (T*S vs S*T)", 610.0f, 360.0f);
 }
 
 void desenhaDemonstracao() {
     if (cena.empty()) return;
-    ObjetoBase obj = cena[0];
-    
-    desenhaTexto("DEMONSTRACAO: A ordem importa (Aperte 'D' para voltar)", 50.0f, 30.0f);
-    desenhaTexto("Esquerda: Escala -> Translacao (T * S)", 20.0f, 70.0f);
-    desenhaTexto("Direita : Translacao -> Escala (S * T)", 320.0f, 70.0f);
+    ObjetoBase& obj = cena[objetoSelecionado]; 
 
-    glm::mat3 T = Transformacoes::translacao(30.0f, 30.0f);
-    glm::mat3 S = Transformacoes::escala(2.0f, 2.0f);
+    float meioX = vpXMin + (vpXMax - vpXMin) / 2.0f;
+    glColor3f(1.0f, 1.0f, 1.0f);
+    glBegin(GL_LINES);
+        glVertex2f(meioX, vpYMin);
+        glVertex2f(meioX, vpYMax);
+    glEnd();
 
-    glm::mat3 matrizTS = T * S;
-    glm::mat3 matrizST = S * T;
+    glm::mat3 S = Transformacoes::escala(1.1f, 0.5f);       
+    glm::mat3 T = Transformacoes::translacao(70.0f, 10.0f);  
 
-    auto desenhaObj = [&](glm::mat3 matriz, float offsetX) {
+    glm::mat3 matrizTS = T * S; // Lado Esquerdo
+    glm::mat3 matrizST = S * T; // Lado Direito
+
+    auto desenharComViewport = [&](glm::mat3 matrizFinal, float vXMin, float vXMax) {
+        
+        glColor3f(0.3f, 0.3f, 0.3f); 
+        glBegin(GL_LINES);
+            glm::vec2 pX1 = Transformacoes::mundoParaViewport(glm::vec2(-100.0f, 0.0f), -100.0f, 100.0f, -100.0f, 100.0f, vXMin, vXMax, vpYMin, vpYMax);
+            glm::vec2 pX2 = Transformacoes::mundoParaViewport(glm::vec2(100.0f, 0.0f), -100.0f, 100.0f, -100.0f, 100.0f, vXMin, vXMax, vpYMin, vpYMax);
+            glVertex2f(pX1.x, pX1.y); glVertex2f(pX2.x, pX2.y);
+            glm::vec2 pY1 = Transformacoes::mundoParaViewport(glm::vec2(0.0f, -100.0f), -100.0f, 100.0f, -100.0f, 100.0f, vXMin, vXMax, vpYMin, vpYMax);
+            glm::vec2 pY2 = Transformacoes::mundoParaViewport(glm::vec2(0.0f, 100.0f), -100.0f, 100.0f, -100.0f, 100.0f, vXMin, vXMax, vpYMin, vpYMax);
+            glVertex2f(pY1.x, pY1.y); glVertex2f(pY2.x, pY2.y);
+        glEnd();
+
         for (const auto& poligono : obj.poligonos) {
             glColor3f(poligono.cor.r, poligono.cor.g, poligono.cor.b);
             glBegin(GL_POLYGON);
             for (const auto& vertice : poligono.vertices) {
-                glm::vec3 ponto(vertice.x + offsetX, vertice.y, 1.0f);
-                glm::vec3 pTransf = matriz * ponto;
+                glm::vec3 p(vertice.x, vertice.y, 1.0f);
+                glm::vec3 pt = matrizFinal * p; 
                 
-                glm::vec2 pVP = Transformacoes::mundoParaViewport(
-                    glm::vec2(pTransf.x, pTransf.y),
-                    mundoXMin, mundoXMax, mundoYMin, mundoYMax, 
-                    vpXMin, vpXMax, vpYMin, vpYMax 
+                glm::vec2 pv = Transformacoes::mundoParaViewport(
+                    glm::vec2(pt.x, pt.y),
+                    -100.0f, 100.0f, -100.0f, 100.0f,
+                    vXMin, vXMax, vpYMin, vpYMax
                 );
-                glVertex2f(pVP.x, pVP.y);
+                glVertex2f(pv.x, pv.y);
             }
             glEnd();
         }
     };
 
-    desenhaObj(matrizTS, -50.0f); 
-    desenhaObj(matrizST,  10.0f); 
+    desenharComViewport(matrizTS, vpXMin, meioX);
+    desenharComViewport(matrizST, meioX, vpXMax);
 }
-
 
 void desenha() {
     glClear(GL_COLOR_BUFFER_BIT);
@@ -206,6 +221,14 @@ void teclado(unsigned char key, int x, int y) {
             obj.matrizAcumulada = Transformacoes::rotacaoNoCentro(centro.x, centro.y, -passoRotacao) * obj.matrizAcumulada;
             break;
         }
+        case 'o': { 
+            obj.matrizAcumulada = Transformacoes::rotacao(0.1f) * obj.matrizAcumulada;
+            break;
+        }
+        case 'O': { 
+            obj.matrizAcumulada = Transformacoes::rotacao(-0.1f) * obj.matrizAcumulada;
+            break;
+        }
         case '+': 
             obj.matrizAcumulada = Transformacoes::escala(passoEscala, passoEscala) * obj.matrizAcumulada;
             break;
@@ -225,6 +248,10 @@ void teclado(unsigned char key, int x, int y) {
             break;
         case 'H':
             obj.matrizAcumulada = Transformacoes::cisalhamento(-0.2f, 0.0f) * obj.matrizAcumulada;
+            break;
+        case 'd':
+        case 'D':
+            modoDemonstracao = !modoDemonstracao; 
             break;
         case '0': 
             obj.matrizAcumulada = glm::mat3(1.0f);
